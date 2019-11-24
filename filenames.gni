@@ -1,3 +1,5 @@
+import("//build/config/ui.gni")
+
 filenames = {
   default_app_ts_sources = [
     "default_app/default_app.ts",
@@ -359,8 +361,6 @@ filenames = {
     "shell/browser/ui/views/autofill_popup_view.h",
     "shell/browser/ui/views/frameless_view.cc",
     "shell/browser/ui/views/frameless_view.h",
-    "shell/browser/ui/views/global_menu_bar_x11.cc",
-    "shell/browser/ui/views/global_menu_bar_x11.h",
     "shell/browser/ui/views/inspectable_web_contents_view_views.cc",
     "shell/browser/ui/views/inspectable_web_contents_view_views.h",
     "shell/browser/ui/views/menu_bar.cc",
@@ -568,9 +568,16 @@ filenames = {
     "chromium_src/chrome/browser/process_singleton_posix.cc",
     "chromium_src/chrome/browser/process_singleton_win.cc",
     "chromium_src/chrome/browser/process_singleton.h",
-    "chromium_src/chrome/browser/ui/views/frame/global_menu_bar_registrar_x11.cc",
-    "chromium_src/chrome/browser/ui/views/frame/global_menu_bar_registrar_x11.h",
   ]
+
+  if (is_linux && !use_ozone) {
+    lib_sources += [
+      "chromium_src/chrome/browser/ui/views/frame/global_menu_bar_registrar_x11.cc",
+      "chromium_src/chrome/browser/ui/views/frame/global_menu_bar_registrar_x11.h",
+      "shell/browser/ui/views/global_menu_bar_x11.cc",
+      "shell/browser/ui/views/global_menu_bar_x11.h",
+    ]
+  }
 
   lib_sources_nss = [
     "chromium_src/chrome/browser/certificate_manager_model.cc",
