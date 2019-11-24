@@ -43,13 +43,15 @@
 #include "ui/wm/core/shadow_types.h"
 #include "ui/wm/core/window_util.h"
 
+#if defined(OS_LINUX)
+#include "shell/browser/ui/views/frameless_view.h"
+#include "shell/browser/ui/views/native_frame_view.h"
+
 #if defined(USE_X11)
 #include "base/strings/string_util.h"
 #include "shell/browser/browser.h"
 #include "shell/browser/linux/unity_service.h"
-#include "shell/browser/ui/views/frameless_view.h"
 #include "shell/browser/ui/views/global_menu_bar_x11.h"
-#include "shell/browser/ui/views/native_frame_view.h"
 #include "shell/browser/ui/x/event_disabler.h"
 #include "shell/browser/ui/x/window_state_watcher.h"
 #include "shell/browser/ui/x/x_window_utils.h"
@@ -58,6 +60,8 @@
 #include "ui/gfx/x/x11_types.h"
 #include "ui/views/widget/desktop_aura/desktop_window_tree_host_x11.h"
 #include "ui/views/window/native_frame_view.h"
+#endif
+
 #elif defined(OS_WIN)
 #include "shell/browser/ui/views/win_frame_view.h"
 #include "shell/browser/ui/win/electron_desktop_native_widget_aura.h"
@@ -429,8 +433,13 @@ bool NativeWindowViews::IsVisible() {
 bool NativeWindowViews::IsEnabled() {
 #if defined(OS_WIN)
   return ::IsWindowEnabled(GetAcceleratedWidget());
-#elif defined(USE_X11)
+#elif defined(OS_LINUX)
+#if defined(USE_OZONE)
+  NOTIMPLEMENTED();
+  return false;
+#else
   return !event_disabler_.get();
+#endif
 #endif
 }
 
@@ -480,13 +489,17 @@ void NativeWindowViews::SetEnabledInternal(bool enable) {
 #endif
 }
 
-#if defined(USE_X11)
+#if defined(OS_LINUX)
 void NativeWindowViews::Maximize() {
+#if defined(USE_OZONE)
+  NOTIMPLEMENTED();
+#else
   if (IsVisible())
     widget()->Maximize();
   else
     widget()->native_widget_private()->Show(ui::SHOW_STATE_MAXIMIZED,
                                             gfx::Rect());
+#endif
 }
 #endif
 
@@ -795,8 +808,13 @@ bool NativeWindowViews::IsClosable() {
     return false;
   }
   return !(info.fState & MFS_DISABLED);
-#elif defined(USE_X11)
+#elif defined(OS_LINUX)
+#if defined(USE_OZONE)
+  NOTIMPLEMENTED();
+  return false;
+#else
   return true;
+#endif
 #endif
 }
 
@@ -1376,8 +1394,13 @@ bool NativeWindowViews::CanMaximize() const {
 bool NativeWindowViews::CanMinimize() const {
 #if defined(OS_WIN)
   return minimizable_;
-#elif defined(USE_X11)
+#elif defined(OS_LINUX)
+#if defined(USE_OZONE)
+  NOTIMPLEMENTED();
+  return false;
+#else
   return true;
+#endif
 #endif
 }
 
