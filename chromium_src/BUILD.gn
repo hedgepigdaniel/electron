@@ -67,10 +67,18 @@ static_library("chrome") {
 
   if (is_linux) {
     sources += [ "//chrome/browser/icon_loader_auralinux.cc" ]
-    sources += [
-      "//chrome/browser/extensions/global_shortcut_listener_x11.cc",
-      "//chrome/browser/extensions/global_shortcut_listener_x11.h",
-    ]
+    if (use_ozone) {
+      sources += [
+        "//chrome/browser/extensions/global_shortcut_listener_ozone.cc",
+        "//chrome/browser/extensions/global_shortcut_listener_ozone.h",
+      ]
+    }
+    else {
+      sources += [
+        "//chrome/browser/extensions/global_shortcut_listener_x11.cc",
+        "//chrome/browser/extensions/global_shortcut_listener_x11.h",
+      ]
+    }
   }
 
   if (enable_desktop_capturer) {
