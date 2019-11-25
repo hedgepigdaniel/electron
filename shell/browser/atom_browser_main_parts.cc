@@ -10,6 +10,12 @@
 
 #if defined(OS_LINUX)
 #include <glib.h>  // for g_setenv()
+#include "base/environment.h"
+#include "base/nix/xdg_util.h"
+#include "base/threading/thread_task_runner_handle.h"
+#include "chrome/browser/ui/libgtkui/gtk_ui.h"
+#include "chrome/browser/ui/libgtkui/gtk_util.h"
+#include "ui/views/linux_ui/linux_ui.h"
 #endif
 
 #include "base/base_switches.h"
@@ -64,15 +70,9 @@
 #endif
 
 #if defined(USE_X11)
-#include "base/environment.h"
-#include "base/nix/xdg_util.h"
-#include "base/threading/thread_task_runner_handle.h"
-#include "chrome/browser/ui/libgtkui/gtk_ui.h"
-#include "chrome/browser/ui/libgtkui/gtk_util.h"
 #include "ui/base/x/x11_util.h"
 #include "ui/base/x/x11_util_internal.h"
 #include "ui/events/devices/x11/touch_factory_x11.h"
-#include "ui/views/linux_ui/linux_ui.h"
 #endif
 
 #if defined(OS_WIN)
@@ -146,14 +146,7 @@ base::string16 MediaStringProvider(media::MessageId id) {
   }
 }
 
-#if defined(USE_X11)
-// Indicates that we're currently responding to an IO error (by shutting down).
-bool g_in_x11_io_error_handler = false;
-
-// Number of seconds to wait for UI thread to get an IO error if we get it on
-// the background thread.
-const int kWaitForUIThreadSeconds = 10;
-
+#if defined(OS_LINUX)
 void OverrideLinuxAppDataPath() {
   base::FilePath path;
   if (base::PathService::Get(DIR_APP_DATA, &path))
@@ -163,6 +156,15 @@ void OverrideLinuxAppDataPath() {
                                     base::nix::kDotConfigDir);
   base::PathService::Override(DIR_APP_DATA, path);
 }
+#endif
+
+#if defined(USE_X11)
+// Indicates that we're currently responding to an IO error (by shutting down).
+bool g_in_x11_io_error_handler = false;
+
+// Number of seconds to wait for UI thread to get an IO error if we get it on
+// the background thread.
+const int kWaitForUIThreadSeconds = 10;
 
 int BrowserX11ErrorHandler(Display* d, XErrorEvent* error) {
   if (!g_in_x11_io_error_handler && base::ThreadTaskRunnerHandle::IsSet()) {
@@ -272,14 +274,16 @@ void AtomBrowserMainParts::RegisterDestructionCallback(
 
 int AtomBrowserMainParts::PreEarlyInitialization() {
   field_trial_list_ = std::make_unique<base::FieldTrialList>(nullptr);
-#if defined(USE_X11)
+#if defined(OS_LINUX)
   views::LinuxUI::SetInstance(BuildGtkUi());
   OverrideLinuxAppDataPath();
 
+#if defined(USE_X11)
   // Installs the X11 error handlers for the browser process used during
   // startup. They simply print error messages and exit because
   // we can't shutdown properly while creating and initializing services.
   ui::SetX11ErrorHandlers(nullptr, nullptr);
+#endif
 #endif
 
 #if defined(OS_POSIX)
@@ -363,7 +367,7 @@ int AtomBrowserMainParts::PreCreateThreads() {
 #if defined(USE_AURA)
   display::Screen* screen = views::CreateDesktopScreen();
   display::Screen::SetScreenInstance(screen);
-#if defined(USE_X11)
+#if defined(OS_LINUX)
   views::LinuxUI::instance()->UpdateDeviceScaleFactor();
 #endif
 #endif
