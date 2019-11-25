@@ -14,8 +14,11 @@
 #include "shell/browser/unresponsive_suppressor.h"
 #include "shell/common/gin_converters/file_path_converter.h"
 #include "ui/base/glib/glib_signal.h"
-#include "ui/events/platform/x11/x11_event_source.h"
 #include "ui/gtk/gtk_util.h"
+#if !defined(USE_OZONE)
+#include "ui/events/platform/x11/x11_event_source.h"
+#include "ui/views/widget/desktop_aura/x11_desktop_handler.h"
+#endif
 
 namespace file_dialog {
 
@@ -134,10 +137,12 @@ class FileChooserDialog {
                      this);
     gtk_widget_show_all(dialog_);
 
+    #if !defined(USE_OZONE)
     // We need to call gtk_window_present after making the widgets visible to
     // make sure window gets correctly raised and gets focus.
     int time = ui::X11EventSource::GetInstance()->GetTimestamp();
     gtk_window_present_with_time(GTK_WINDOW(dialog_), time);
+    #endif
   }
 
   void RunSaveAsynchronous(
