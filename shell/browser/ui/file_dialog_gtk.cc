@@ -12,7 +12,9 @@
 #include "shell/browser/native_window_views.h"
 #include "shell/browser/unresponsive_suppressor.h"
 #include "ui/base/glib/glib_signal.h"
+#if !defined(USE_OZONE)
 #include "ui/views/widget/desktop_aura/x11_desktop_handler.h"
+#endif
 
 namespace file_dialog {
 
@@ -120,10 +122,12 @@ class FileChooserDialog {
                      this);
     gtk_widget_show_all(dialog_);
 
+    #if !defined(USE_OZONE)
     // We need to call gtk_window_present after making the widgets visible to
     // make sure window gets correctly raised and gets focus.
     int time = ui::X11EventSource::GetInstance()->GetTimestamp();
     gtk_window_present_with_time(GTK_WINDOW(dialog_), time);
+    #endif
   }
 
   void RunSaveAsynchronous(electron::util::Promise promise) {
