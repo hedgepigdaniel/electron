@@ -215,7 +215,9 @@ int X11EmptyErrorHandler(Display* d, XErrorEvent* error) {
 int X11EmptyIOErrorHandler(Display* d) {
   return 0;
 }
+#endif
 
+#if defined(OS_LINUX)
 // GTK does not provide a way to check if current theme is dark, so we compare
 // the text and background luminosity to get a result.
 // This trick comes from FireFox.
@@ -233,7 +235,7 @@ void UpdateDarkThemeSetting() {
 
 }  // namespace
 
-#if defined(USE_X11)
+#if defined(OS_LINUX)
 class DarkThemeObserver : public ui::NativeThemeObserver {
  public:
   DarkThemeObserver() = default;
@@ -405,11 +407,13 @@ void ElectronBrowserMainParts::PostDestroyThreads() {
 }
 
 void ElectronBrowserMainParts::ToolkitInitialized() {
+#if defined(OS_LINUX)
 #if defined(USE_X11)
   // In Aura/X11, Gtk-based LinuxUI implementation is used.
   gtk_ui_delegate_ = std::make_unique<ui::GtkUiDelegateX11>(gfx::GetXDisplay());
   ui::GtkUiDelegate::SetInstance(gtk_ui_delegate_.get());
-  views::LinuxUI* linux_ui = BuildGtkUi(gtk_ui_delegate_.get());
+#endif
+  views::LinuxUI* linux_ui = BuildGtkUi(ui::GtkUiDelegate::instance());
   views::LinuxUI::SetInstance(linux_ui);
   linux_ui->Initialize();
 
