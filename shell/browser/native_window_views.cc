@@ -46,11 +46,13 @@
 #if defined(OS_LINUX)
 #include "shell/browser/ui/views/frameless_view.h"
 #include "shell/browser/ui/views/native_frame_view.h"
-
-#if defined(USE_X11)
 #include "base/strings/string_util.h"
 #include "shell/browser/browser.h"
 #include "shell/browser/linux/unity_service.h"
+#include "ui/views/window/native_frame_view.h"
+#include "ui/views/widget/desktop_aura/desktop_window_tree_host_linux.h"
+
+#if defined(USE_X11)
 #include "shell/browser/ui/views/global_menu_bar_x11.h"
 #include "shell/browser/ui/x/event_disabler.h"
 #include "shell/browser/ui/x/window_state_watcher.h"
@@ -59,7 +61,6 @@
 #include "ui/gfx/x/x11_atom_cache.h"
 #include "ui/gfx/x/x11_types.h"
 #include "ui/views/widget/desktop_aura/desktop_window_tree_host_x11.h"
-#include "ui/views/window/native_frame_view.h"
 #endif
 
 #elif defined(OS_WIN)
@@ -195,7 +196,7 @@ NativeWindowViews::NativeWindowViews(const gin_helper::Dictionary& options,
     params.parent = parent->GetNativeWindow();
 
   params.native_widget = new ElectronDesktopNativeWidgetAura(this);
-#elif defined(USE_X11)
+#elif defined(OS_LINUX)
   std::string name = Browser::Get()->GetName();
   // Set WM_WINDOW_ROLE.
   params.wm_role_name = "browser-window";
@@ -212,9 +213,11 @@ NativeWindowViews::NativeWindowViews(const gin_helper::Dictionary& options,
   std::string window_type;
   options.Get(options::kType, &window_type);
 
+#if defined(OS_LINUX)
 #if defined(USE_X11)
   // Start monitoring window states.
   window_state_watcher_ = std::make_unique<WindowStateWatcher>(this);
+#endif
 
   // Set _GTK_THEME_VARIANT to dark if we have "dark-theme" option set.
   bool use_dark_theme = false;
@@ -222,6 +225,7 @@ NativeWindowViews::NativeWindowViews(const gin_helper::Dictionary& options,
     SetGTKDarkThemeEnabled(use_dark_theme);
   }
 
+#if defined(USE_X11)
   // Before the window is mapped the SetWMSpecState can not work, so we have
   // to manually set the _NET_WM_STATE.
   std::vector<x11::Atom> state_atom_list;
@@ -234,16 +238,20 @@ NativeWindowViews::NativeWindowViews(const gin_helper::Dictionary& options,
   if (fullscreen) {
     state_atom_list.push_back(gfx::GetAtom("_NET_WM_STATE_FULLSCREEN"));
   }
+#endif
 
   if (parent) {
     SetParentWindow(parent);
     // Force using dialog type for child window.
     window_type = "dialog";
+#if defined(USE_X11)
     // Modal window needs the _NET_WM_STATE_MODAL hint.
     if (is_modal())
       state_atom_list.push_back(gfx::GetAtom("_NET_WM_STATE_MODAL"));
+#endif
   }
 
+#if defined(USE_X11)
   if (!state_atom_list.empty())
     ui::SetAtomArrayProperty(GetAcceleratedWidget(), "_NET_WM_STATE", "ATOM",
                              state_atom_list);
@@ -251,6 +259,7 @@ NativeWindowViews::NativeWindowViews(const gin_helper::Dictionary& options,
   // Set the _NET_WM_WINDOW_TYPE.
   if (!window_type.empty())
     SetWindowType(GetAcceleratedWidget(), window_type);
+#endif
 #endif
 
 #if defined(OS_WIN)
@@ -1151,7 +1160,7 @@ void NativeWindowViews::SetProgressBar(double progress,
                                        NativeWindow::ProgressState state) {
 #if defined(OS_WIN)
   taskbar_host_.SetProgressBar(GetAcceleratedWidget(), progress, state);
-#elif defined(USE_X11)
+#elif defined(OS_LINUX)
   if (unity::IsRunning()) {
     unity::SetProgressFraction(progress);
   }
@@ -1206,7 +1215,7 @@ content::DesktopMediaID NativeWindowViews::GetDesktopMediaID() const {
 #if defined(OS_WIN)
   window_handle =
       reinterpret_cast<content::DesktopMediaID::Id>(accelerated_widget);
-#elif defined(USE_X11)
+#elif defined(OS_LINUX)
   window_handle = static_cast<uint32_t>(accelerated_widget);
 #endif
   aura::WindowTreeHost* const host =
@@ -1309,7 +1318,7 @@ void NativeWindowViews::SetIcon(HICON window_icon, HICON app_icon) {
   SendMessage(hwnd, WM_SETICON, ICON_BIG,
               reinterpret_cast<LPARAM>(app_icon_.get()));
 }
-#elif defined(USE_X11)
+#elif defined(OS_LINUX)
 void NativeWindowViews::SetIcon(const gfx::ImageSkia& icon) {
   auto* tree_host = views::DesktopWindowTreeHostLinux::GetHostForWidget(
       GetAcceleratedWidget());
